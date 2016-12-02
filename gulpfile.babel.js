@@ -1,20 +1,30 @@
 /* eslint-disable import/no-extraneous-dependencies */
 /* eslint-disable no-console */
 import eslint from 'gulp-eslint';
+import webpack from 'webpack-stream';
+import webpackConfig from './webpack.config.babel';
 
 const gulp = require('gulp');
 const babel = require('gulp-babel');
 const del = require('del');
-const exec = require('child_process').exec;
 
 
 const paths = {
   allSrcJs: 'src/**/*.js',
+  serverSrcJs: 'src/server**/*.js',
+  sharedSrcJs: 'src/shared/**/*.js',
+  clientEntryPoint: 'src/client/app.js',
   gulpFile: 'gulpfile.babel.js',
+  webpackFile: 'webpack.config.babel.js',
+  clientBundle: 'dist/client-bundle.js?(.map)',
   libDir: 'lib',
+  distDir: 'dist',
 };
 
-gulp.task('clean', () => del(paths.libDir));
+gulp.task('clean', () => del([
+  paths.libDir,
+  paths.clientBundle,
+]));
 
 gulp.task('build', ['lint', 'clean'], () =>
   gulp.src(paths.allSrcJs)
@@ -22,11 +32,10 @@ gulp.task('build', ['lint', 'clean'], () =>
     .pipe(gulp.dest(paths.libDir)),
 );
 
-gulp.task('main', ['build'], (callback) => {
-  exec(`node ${paths.libDir}`, (error, stdout) => {
-    console.log(stdout);
-    return callback(error);
-  });
+gulp.task('main', ['lint', 'clean'], () => {
+  gulp.src(paths.clientEntryPoint)
+    .pipe(webpack(webpackConfig))
+    .pipe(gulp.dest(paths.distDir));
 });
 
 gulp.task('watch', () => {
@@ -39,6 +48,7 @@ gulp.task('lint', () =>
   gulp.src([
     paths.allSrcJs,
     paths.gulpFile,
+    paths.webpackFile,
   ])
     .pipe(eslint())
     .pipe(eslint.format())
