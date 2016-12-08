@@ -2,6 +2,8 @@
 /* eslint-disable no-console */
 import eslint from 'gulp-eslint';
 import webpack from 'webpack-stream';
+import mocha from 'gulp-mocha';
+import flow from 'gulp-flowtype';
 import webpackConfig from './webpack.config.babel';
 
 const gulp = require('gulp');
@@ -11,7 +13,8 @@ const del = require('del');
 
 const paths = {
   allSrcJs: 'src/**/*.js',
-  serverSrcJs: 'src/server**/*.js',
+  allLibTests: 'lib/test/**/*.js',
+  serverSrcJs: 'src/server/**/*.js',
   sharedSrcJs: 'src/shared/**/*.js',
   clientEntryPoint: 'src/client/app.js',
   gulpFile: 'gulpfile.babel.js',
@@ -32,7 +35,7 @@ gulp.task('build', ['lint', 'clean'], () =>
     .pipe(gulp.dest(paths.libDir)),
 );
 
-gulp.task('main', ['lint', 'clean'], () => {
+gulp.task('main', ['test'], () => {
   gulp.src(paths.clientEntryPoint)
     .pipe(webpack(webpackConfig))
     .pipe(gulp.dest(paths.distDir));
@@ -52,5 +55,11 @@ gulp.task('lint', () =>
   ])
     .pipe(eslint())
     .pipe(eslint.format())
-    .pipe(eslint.failAfterError()),
+    .pipe(eslint.failAfterError())
+    .pipe(flow({ abort: true })),
+);
+
+gulp.task('test', ['build'], () =>
+  gulp.src(paths.allLibTests)
+    .pipe(mocha()),
 );
